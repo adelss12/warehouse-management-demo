@@ -767,14 +767,29 @@ function renderEmployees(){
       : '-';
     const searchKey = ((e.name||'') + ' ' + (e.phone||'') + ' ' + whNumbers.join(' ')).toLowerCase();
     return `<tr data-search="${esc(searchKey)}">
-      <td style="max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><a class="emp-link" onclick="showEmpDetails('${e.id}')" title="${esc(e.name)}">${esc(e.name)}</a></td>
-      <td>${esc(e.phone||'-')}</td>
-      <td><div style="display:flex;flex-wrap:wrap;gap:.15rem">${whChips}</div></td>
-      <td>${esc(e.notes||'-')}</td>
-      <td>${isAdmin()?`
-          <button class="btn btn-sm btn-ghost" onclick="editEmployee('${e.id}')">تعديل</button>
-          <button class="btn btn-sm btn-danger" onclick="delEmployee('${e.id}')">حذف</button>`:''}</td>
-    </tr>`;
+  <td style="width:32%;min-width:190px">
+    <a class="emp-link" onclick="showEmpDetails('${e.id}')">${esc(e.name)}</a>
+  </td>
+
+  <td style="width:1%;white-space:nowrap">
+    ${esc(e.phone || '-')}
+  </td>
+
+  <td style="width:48%;min-width:260px">
+    <div style="display:flex;flex-wrap:wrap;gap:.15rem">${whChips}</div>
+  </td>
+
+  <td style="width:1%;white-space:nowrap">
+    ${esc(e.notes || '-')}
+  </td>
+
+  <td style="width:1%;white-space:nowrap">
+    ${isAdmin() ? `
+      <button class="btn btn-sm btn-ghost" onclick="editEmployee('${e.id}')">تعديل</button>
+      <button class="btn btn-sm btn-danger" onclick="delEmployee('${e.id}')">حذف</button>
+    ` : ''}
+  </td>
+</tr>`;
   }).join('');
   document.getElementById('main').innerHTML = `
     <div class="page-head">
@@ -789,7 +804,7 @@ function renderEmployees(){
     </div>
     <div class="card">
       ${state.employees.length===0 ? `<div class="empty">لا يوجد موظفون</div>` :
-      `<div style="max-height:560px;overflow:auto;border:1px solid var(--border-2);border-radius:10px"><table class="sticky-thead" id="empTable"><thead><tr><th>الاسم</th><th>رقم الجوال</th><th>المستودعات (أفقي)</th><th>ملاحظات</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+      `<div style="max-height:560px;overflow:auto;border:1px solid var(--border-2);border-radius:10px"><table class="sticky-thead" id="empTable"><colgroup><col style="width:32%"><col style="width:1%"><col style="width:48%"><col style="width:1%"><col style="width:1%"></colgroup><thead><tr><th>الاسم</th><th>رقم الجوال</th><th>المستودعات (أفقي)</th><th>ملاحظات</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
        <div id="empSearchEmpty" class="empty hidden">لا توجد نتائج مطابقة</div>`}
     </div>`;
 }
