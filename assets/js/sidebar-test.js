@@ -1325,12 +1325,26 @@ function confirmWipe(){
 
 
 /* ========= Setup Wizard (one-time) ========= */
-let wiz = { step: 1, importedE: 0, skippedE: 0, lockedEmp: null };
+let wiz = {
+  step: 1,
+  importedE: 0,
+  skippedE: 0,
+  lockedEmp: null,
+  protectedAssignmentIds: []
+};
 
 function openWizard(step){
   if(!isAdmin()) return toast('يتطلب صلاحية المسؤول', 'error');
   const s = (step===1 || step===2) ? step : 1;
-  wiz = { step: s, importedE: 0, skippedE: 0, lockedEmp: null };
+  wiz = {
+  step: s,
+  importedE: 0,
+  skippedE: 0,
+  lockedEmp: null,
+  protectedAssignmentIds: state.assignments
+    .filter(a => !a.returnedAt)
+    .map(a => a.id)
+};
   renderWizard();
 }
 
@@ -1390,7 +1404,10 @@ function renderWizard(){
         ${state.assignments.filter(a=>!a.returnedAt).slice(-20).reverse().map(a => `
           <div style="display:flex;justify-content:space-between;padding:.35rem .5rem;border-bottom:1px solid var(--border-2);font-size:.85rem">
             <span><b>#${esc(whNumber(a.warehouseId))}</b> ← ${esc(empName(a.employeeId))}</span>
-            <button class="btn btn-ghost" style="padding:.1rem .4rem;font-size:.75rem" onclick="unlink('${a.id}')">إلغاء</button>
+            ${wiz.protectedAssignmentIds.includes(a.id)
+  ? `<span style="color:var(--muted);font-size:.75rem">🔒 عهدة سابقة محمية</span>`
+  : `<button class="btn btn-ghost" style="padding:.1rem .4rem;font-size:.75rem" onclick="unlink('${a.id}')">إلغاء</button>`
+}
           </div>`).join('') || '<div style="text-align:center;color:var(--muted);padding:1rem">لا توجد روابط بعد</div>'}
       </div>`}`;
   }
@@ -1511,6 +1528,14 @@ function doneEmp(){
 }
 
 function unlink(aid){
+  if(wiz.protectedAssignmentIds.includes(aid)){
+    toast(
+      'هذه عهدة سابقة ولا يمكن إلغاؤها من معالج التأسيس. استخدم استلام مستودع من موظف لتسجيل الحركة والتاريخ.',
+      'error'
+    );
+    return;
+  }
+
   state.assignments = state.assignments.filter(a => a.id !== aid);
   save(state);
   renderWizard();
