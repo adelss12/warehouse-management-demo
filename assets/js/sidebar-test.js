@@ -1,16 +1,109 @@
 
 /* ========= Storage ========= */
 const KEY = 'wh_app_sidebar_test';
-const defaultState = () => ({
-  users: [
-    { id: 'u1', username: 'admin', password: '1234', role: 'admin' },
-    { id: 'u2', username: 'user',  password: '1234', role: 'user' },
-  ],
-  employees: [],
-  warehouses: [],
-  assignments: [],
-  departments: ['القسم الأول','القسم الثاني','القسم الثالث','القسم الرابع','القسم الخامس'],
-});
+const defaultState = () => {
+  const makeDate = daysAgo => {
+    const date = new Date();
+    date.setHours(12, 0, 0, 0);
+    date.setDate(date.getDate() - daysAgo);
+    return {
+      hijri: toHijri(date),
+      day: ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'][date.getDay()]
+    };
+  };
+
+  const employees = Array.from({ length: 15 }, (_, i) => ({
+    id: `demo-emp-${i + 1}`,
+    name: `موظف تجريبي ${String(i + 1).padStart(2, '0')}`,
+    phone: `050000${String(i + 1).padStart(4, '0')}`,
+    department: i % 5,
+    notes: 'بيانات تجريبية'
+  }));
+
+  const warehouseNumbers = Array.from({ length: 30 }, (_, i) => {
+    const group = String.fromCharCode(65 + Math.floor(i / 10));
+    return `${group}${String((i % 10) + 1).padStart(2, '0')}`;
+  });
+
+  const warehouses = warehouseNumbers.map((number, i) => ({
+    id: `demo-wh-${i + 1}`,
+    number,
+    location: `المبنى ${(i % 3) + 1}`,
+    notes: 'مستودع تجريبي'
+  }));
+
+  const assignments = [];
+
+  // 24 مستودعًا مشغولًا حاليًا = 80%
+  for(let i = 0; i < 24; i++){
+    const received = makeDate(i % 18);
+    assignments.push({
+      id: `demo-active-${i + 1}`,
+      warehouseId: warehouses[i].id,
+      employeeId: employees[i % employees.length].id,
+      receivedAt: received.hijri,
+      receivedDay: received.day,
+      returnedAt: null,
+      returnedDay: null,
+      handoverReason: '',
+      notes: 'عهدة تجريبية نشطة'
+    });
+  }
+
+  // حركات سابقة لمستودعات مشغولة حاليًا
+  for(let i = 0; i < 12; i++){
+    const activeReceivedDaysAgo = i % 18;
+    const returned = makeDate(activeReceivedDaysAgo + 1);
+    const received = makeDate(activeReceivedDaysAgo + 21);
+
+    assignments.push({
+      id: `demo-history-${i + 1}`,
+      warehouseId: warehouses[i].id,
+      employeeId: employees[(i + 5) % employees.length].id,
+      receivedAt: received.hijri,
+      receivedDay: received.day,
+      returnedAt: returned.hijri,
+      returnedDay: returned.day,
+      handoverReason: 'جاهز ونظيف',
+      notes: 'حركة سابقة تجريبية'
+    });
+  }
+
+  // سجل سابق للمستودعات الستة الفارغة حاليًا
+  for(let i = 24; i < 30; i++){
+    const returned = makeDate(i - 24);
+    const received = makeDate((i - 24) + 15);
+
+    assignments.push({
+      id: `demo-free-history-${i + 1}`,
+      warehouseId: warehouses[i].id,
+      employeeId: employees[(i + 3) % employees.length].id,
+      receivedAt: received.hijri,
+      receivedDay: received.day,
+      returnedAt: returned.hijri,
+      returnedDay: returned.day,
+      handoverReason: 'جاهز ونظيف',
+      notes: 'مستودع فارغ بعد الاستلام'
+    });
+  }
+
+  return {
+    users: [
+      { id: 'u1', username: 'admin', password: '1234', role: 'admin' },
+      { id: 'u2', username: 'user', password: '1234', role: 'user' }
+    ],
+    employees,
+    warehouses,
+    assignments,
+    departments: [
+      'القسم الأول',
+      'القسم الثاني',
+      'القسم الثالث',
+      'القسم الرابع',
+      'القسم الخامس'
+    ]
+  };
+};
 function load(){
   try{
     const r = localStorage.getItem(KEY);
