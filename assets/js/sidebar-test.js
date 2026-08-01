@@ -284,6 +284,7 @@ function nav(p){
   else if(p==='free-warehouses') renderFreeWarehouses();
   else if(p==='warehouses') renderWarehouses();
   else if(p==='employees') renderEmployees();
+  else if(p==='services') renderServices();
   else if(p==='assignments') renderAssignments();
   else if(p==='users'){ if(!isAdmin()){ toast('يتطلب صلاحية المسؤول', 'error'); current='settings'; renderSettings(); return; } renderUsers(); }
   else if(p==='reports') renderReports();
@@ -433,7 +434,281 @@ function modal(html, opts){
     `<div class="modal-back"><div class="modal"${styleAttr}>${html}</div></div>`;
 }
 function closeModal(){ document.getElementById('modalMount').innerHTML=''; }
+/* ========= Services ========= */
+function renderServices(){
+  const rows = state.employees.map(employee => {
+    const services = employee.services || {};
 
+    return `
+      <tr>
+        <td>
+          <a class="emp-link" onclick="showEmpDetails('${employee.id}')">
+            ${esc(employee.name || '-')}
+          </a>
+        </td>
+        <td style="white-space:nowrap">${esc(employee.phone || '-')}</td>
+        <td>${esc(services.rank || '-')}</td>
+        <td>${esc(services.generalNumber || '-')}</td>
+        <td>${esc(services.jobTitle || '-')}</td>
+        <td>${esc(services.department || '-')}</td>
+        <td>${esc(services.custodyReceivedDate || '-')}</td>
+        <td>${esc(services.custodyLeftDate || '-')}</td>
+        <td>${esc(services.hireDate || '-')}</td>
+        <td>${esc(services.email || '-')}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const employeesWithServices = state.employees.filter(employee =>
+    employee.services && Object.values(employee.services).some(Boolean)
+  ).length;
+
+  document.getElementById('main').innerHTML = `
+    <div class="page-head">
+      <span></span>
+
+      <div class="title">
+        <h1>الخدمات</h1>
+        <div class="desc">
+          استيراد بيانات الموظفين والخدمات المساندة
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">
+        <div class="ttl">📂 استيراد ملف الموظفين</div>
+
+        <button
+          class="btn btn-primary"
+          onclick="document.getElementById('servicesEmployeeFile').click()"
+        >
+          رفع ملف الموظفين Excel / CSV
+        </button>
+
+        <input
+          id="servicesEmployeeFile"
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          hidden
+          onchange="handleServicesEmployeeImport(event)"
+        />
+      </div>
+
+      <div class="hint" style="margin-top:.75rem">
+        يقرأ البرنامج: الاسم، الجوال، المرتبة، الرقم العام، الوظيفة،
+        القسم، تاريخ استلام العهدة، تاريخ ترك العهدة، تاريخ التعيين والإيميل.
+      </div>
+
+      <div
+        class="hint"
+        style="margin-top:.5rem;background:#fff7dc;color:#805b00"
+      >
+        🔒 تاريخ استلام العهدة وتاريخ ترك العهدة هنا بيانات خدمات للموظف فقط،
+        ولا تنشئ أو تعدّل أي حركة مستودع.
+      </div>
+
+      <div style="margin-top:1rem;color:var(--muted);font-size:.85rem">
+        إجمالي الموظفين:
+        <b>${state.employees.length}</b>
+        |
+        لديهم بيانات خدمات:
+        <b>${employeesWithServices}</b>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:1rem">
+      ${
+        state.employees.length === 0
+          ? `<div class="empty">لا يوجد موظفون حاليًا</div>`
+          : `
+            <div style="max-height:520px;overflow:auto;border:1px solid var(--border-2);border-radius:10px">
+              <table class="sticky-thead">
+                <thead>
+                  <tr>
+                    <th>الاسم</th>
+                    <th>الجوال</th>
+                    <th>المرتبة</th>
+                    <th>الرقم العام</th>
+                    <th>الوظيفة</th>
+                    <th>القسم</th>
+                    <th>تاريخ استلام العهدة</th>
+                    <th>تاريخ ترك العهدة</th>
+                    <th>تاريخ التعيين</th>
+                    <th>الإيميل</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          `
+      }
+    </div>
+  `;
+}
+
+function normalizeImportedPhone(value){
+  let phone = String(value ?? '').trim().replace(/\s+/g, '');
+
+  // يعيد الصفر إذا قرأ Excel رقم جوال سعودي مكونًا من 9 أرقام
+  if(/^[5][0-9]{8}$/.test(phone)){
+    phone = '0' + phone;
+  }
+
+  return phone;
+}
+
+function employeeServiceData(row){
+  return {
+    rank: String(
+      pickKey(row, ['المرتبة', 'rank', 'grade'])
+    ).trim(),
+
+    generalNumber: String(
+      pickKey(row, ['الرقم العام', 'الرقم_العام', 'general number', 'employee number'])
+    ).trim(),
+
+    jobTitle: String(
+      pickKey(row, ['الوظيفة', 'المسمى الوظيفي', 'job title', 'job'])
+    ).trim(),
+
+    department: String(
+      pickKey(row, ['القسم', 'الإدارة', 'department'])
+    ).trim(),
+
+    custodyReceivedDate: String(
+      pickKey(row, ['تاريخ استلام العهدة', 'تاريخ_استلام_العهدة'])
+    ).trim(),
+
+    custodyLeftDate: String(
+      pickKey(row, ['تاريخ ترك العهدة', 'تاريخ_ترك_العهدة'])
+    ).trim(),
+
+    hireDate: String(
+      pickKey(row, ['تاريخ التعيين', 'تاريخ_التعيين', 'hire date'])
+    ).trim(),
+
+    email: String(
+      pickKey(row, ['الإيميل', 'البريد الإلكتروني', 'البريد الالكتروني', 'email'])
+    ).trim()
+  };
+}
+
+function handleServicesEmployeeImport(event){
+  const file = event.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = e => {
+    try{
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+      // raw:false يحافظ على عرض التواريخ كنصوص خدمات
+      const rows = XLSX.utils.sheet_to_json(sheet, {
+        defval: '',
+        raw: false
+      });
+
+      let added = 0;
+      let updated = 0;
+      let skipped = 0;
+
+      for(const row of rows){
+        const name = String(
+          pickKey(row, ['الاسم', 'اسم الموظف', 'name'])
+        ).trim();
+
+        if(!name){
+          skipped++;
+          continue;
+        }
+
+        const phone = normalizeImportedPhone(
+          pickKey(row, [
+            'الجوال',
+            'رقم الجوال',
+            'الهاتف',
+            'phone',
+            'mobile'
+          ])
+        );
+
+        const services = employeeServiceData(row);
+
+        // البحث بالرقم العام أولًا، ثم الجوال، ثم الاسم
+        let employee = null;
+
+        if(services.generalNumber){
+          employee = state.employees.find(item =>
+            String(item.services?.generalNumber || '').trim() ===
+            services.generalNumber
+          );
+        }
+
+        if(!employee && phone){
+          employee = state.employees.find(item =>
+            normalizeImportedPhone(item.phone) === phone
+          );
+        }
+
+        if(!employee){
+          employee = state.employees.find(item =>
+            String(item.name || '').trim() === name
+          );
+        }
+
+        if(employee){
+          employee.name = name;
+
+          if(phone){
+            employee.phone = phone;
+          }
+
+          employee.services = {
+            ...(employee.services || {}),
+            ...services
+          };
+
+          updated++;
+        }else{
+          state.employees.push({
+            id: uid(),
+            name,
+            phone,
+            notes: '',
+            department: null,
+            services
+          });
+
+          added++;
+        }
+      }
+
+      /*
+       * مهم:
+       * لا نستخدم state.assignments هنا مطلقًا.
+       * تواريخ الخدمات لا تؤثر على عهد المستودعات أو حركاتها.
+       */
+      save(state);
+
+      toast(
+        `تم الاستيراد: ${added} جديد، ${updated} محدث، ${skipped} متجاوز`,
+        'success'
+      );
+
+      renderServices();
+    }catch(error){
+      toast('فشل قراءة ملف الموظفين: ' + error.message, 'error');
+    }
+
+    event.target.value = '';
+  };
+
+  reader.readAsArrayBuffer(file);
+}
 /* ========= Dashboard ========= */
 function renderDashboard(){
   const total = state.warehouses.length;
@@ -489,7 +764,9 @@ function renderDashboard(){
         <div class="action-bar">
           <button class="btn btn-success" onclick="openHandover()" title="تسليم مستودع فارغ لموظف (يصبح بعهدته)">📤 تسليم مستودع لموظف</button>
           <button class="btn btn-primary" onclick="openReceive()" title="استلام مستودع من موظف (يصبح فارغاً)">📥 استلام مستودع من موظف</button>
-          
+          <button class="btn btn-secondary" onclick="nav('services')" title="استيراد بيانات الموظفين والخدمات المساندة">
+  🧰 الخدمات
+</button>
           
         </div>`:''}
       </div>
@@ -1220,7 +1497,20 @@ function renderSettings(){
       <div class="card-h"><div class="ttl" style="color:var(--muted)">⚙ التأسيس الأولي (يستخدم مرة واحدة)</div></div>
       <p style="color:var(--muted);font-size:.85rem;margin-bottom:.75rem">استيراد أسماء الموظفين والمستودعات من Excel أو CSV ثم ربطها دفعة واحدة.</p>
       ${isAdmin()?`<div style="display:flex;gap:.4rem;flex-wrap:wrap">
-        <button class="btn btn-secondary" onclick="openWizard()" style="font-size:.85rem">🧙 فتح معالج الإعداد</button>
+        <input
+  type="file"
+  id="settingsEmployeeFile"
+  accept=".xlsx,.xls,.csv"
+  hidden
+  onchange="handleServicesEmployeeImport(event)"
+/>
+<button
+  class="btn btn-secondary"
+  onclick="document.getElementById('settingsEmployeeFile').click()"
+  style="font-size:.85rem"
+>
+  📂 استيراد الموظفين
+</button>
         <button class="btn btn-primary" onclick="openWizard(2)" style="font-size:.85rem">🔗 ربط</button>
       </div>`:`<div class="hint">يتطلب صلاحية المسؤول</div>`}
     </div>
@@ -1371,10 +1661,9 @@ function renderWizard(){
       </div>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
         <button class="btn btn-secondary" onclick="downloadTemplate('employees')">⬇ تحميل قالب Excel</button>
-        <button class="btn btn-secondary" onclick="downloadTemplate('employeesCsv')">⬇ قالب CSV</button>
+        
       </div>
-      <input type="file" id="wizFileE" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleImport(event,'employees')" />
-      <button class="btn btn-primary" onclick="document.getElementById('wizFileE').click()" style="width:100%">📂 رفع ملف الموظفين (xlsx / csv)</button>
+      
       ${wiz.importedE>0 || wiz.skippedE>0 ? `<div class="hint" style="margin-top:1rem;background:#dcfce7;color:#166534;padding:.65rem .85rem;border-radius:8px">✅ أضيف ${wiz.importedE} موظف${wiz.skippedE?` • تم تجاهل ${wiz.skippedE} مكرر`:''}</div>`:''}`;
   } else {
     const freeW = state.warehouses.filter(w => !activeAssignmentForWarehouse(w.id));
