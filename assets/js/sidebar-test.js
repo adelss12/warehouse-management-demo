@@ -1386,7 +1386,7 @@ function renderWizard(){
     const lockedCount = wiz.lockedEmp ? activeAssignmentsForEmployee(wiz.lockedEmp).length : 0;
     body = `
       <h3 style="margin-bottom:.5rem">الخطوة 2: الربط 🔗</h3>
-      <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">تم ربط <b>${linked}</b> من <b>${total}</b> مستودع. اختر موظفاً وأضف له مستودعاته، ثم اضغط <b>تم</b> للانتقال إلى موظف آخر.</p>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem">تم ربط <b>${linked}</b> من <b>${total}</b> مستودع. اختر موظفًا وأضف إليه مستودعاته، ثم اضغط «تم» لاختيار موظف آخر.</p>
       ${state.employees.length===0 || total===0 ? `<div class="hint" style="background:#fee2e2;color:#991b1b;padding:.75rem;border-radius:8px">${total===0 ? 'لا توجد مستودعات بعد. أضفها من <b>قائمة المستودعات</b> (زر «+ نطاق» أو «+ مستودع جديد») ثم عد إلى هنا.' : 'لا يوجد موظفون. ارجع للخطوة السابقة لاستيرادهم.'}</div>` : `
       ${lockedEmpObj ? `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:.6rem .85rem;margin-bottom:.75rem;font-size:.88rem">
         🎯 الموظف الحالي: <b>${esc(lockedEmpObj.name)}</b> — عهدته: <b style="color:var(--primary)">${lockedCount}</b> مستودع
@@ -1397,7 +1397,7 @@ function renderWizard(){
         <div><label style="font-size:.8rem;color:var(--muted)">المستودع (Ctrl للاختيار المتعدد)</label>
           <select id="linkWh" class="input" multiple size="5" style="width:100%">${wOpts}</select></div>
         <button class="btn btn-primary" onclick="doLink()" ${freeW.length===0?'disabled':''}>🔗 ربط</button>
-        ${wiz.lockedEmp ? `<button class="btn btn-success" onclick="doneEmp()" title="انتقال إلى موظف آخر">✓ تم</button>`:''}
+        ${wiz.lockedEmp ? `<button class="btn btn-success" onclick="doneEmp()" title="إنهاء الموظف الحالي واختيار موظف آخر">✓ تم</button>` : ''}
       </div>
       ${freeW.length===0 ? `<div class="hint" style="background:#dcfce7;color:#166534;padding:.65rem;border-radius:8px">🎉 تم ربط جميع المستودعات!</div>`:''}
       <div style="max-height:200px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:.5rem">
@@ -1416,7 +1416,7 @@ function renderWizard(){
     <div style="display:flex;justify-content:space-between;margin-top:1.25rem;gap:.5rem">
       <button class="btn btn-ghost" onclick="closeModal()">إغلاق</button>
       <div style="display:flex;gap:.5rem">
-        ${wiz.step>1 ? `<button class="btn btn-secondary" onclick="wizGo(${wiz.step-1})">← السابق</button>`:''}
+        ${wiz.step>1 ? `<button class="btn btn-secondary" onclick="wizGo(${wiz.step-1})">← العودة إلى خطوة الموظفين</button>` : ''}
         ${wiz.step<2 ? `<button class="btn btn-primary" onclick="wizGo(${wiz.step+1})">التالي →</button>`
                      : `<button class="btn btn-success" onclick="closeModal()">✓ إنهاء</button>`}
       </div>
